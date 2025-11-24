@@ -3,224 +3,254 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
-from datetime import datetime, timedelta
-import numpy as np
+from music_analyzer import music_analyzer
 
-def load_enhanced_data():
-    # Crear datos más realistas y extensos
-    np.random.seed(42)
+def create_global_music_dashboard(analysis_type, selected_genres, selected_artists):
+    """Dashboard principal de análisis musical global"""
     
-    artists = ['The Weeknd', 'Dua Lipa', 'Bad Bunny', 'Taylor Swift', 'Ed Sheeran', 
-               'Billie Eilish', 'The Beatles', 'Rosalía', 'J Balvin', 'Olivia Rodrigo']
+    # Cargar datos según el tipo de análisis
+    df = music_analyzer.get_global_charts_data()
     
-    genres = {
-        'The Weeknd': 'Pop/R&B',
-        'Dua Lipa': 'Pop/Dance',
-        'Bad Bunny': 'Reggaeton',
-        'Taylor Swift': 'Pop',
-        'Ed Sheeran': 'Pop/Folk',
-        'Billie Eilish': 'Alternative',
-        'The Beatles': 'Rock',
-        'Rosalía': 'Flamenco/Pop',
-        'J Balvin': 'Reggaeton',
-        'Olivia Rodrigo': 'Pop/Rock'
-    }
-    
-    data = []
-    for i in range(100):  # 100 canciones
-        artist = np.random.choice(artists)
-        data.append({
-            'track_name': f"Canción {i+1}",
-            'artist': artist,
-            'genre': genres[artist],
-            'duration_ms': np.random.randint(180000, 300000),
-            'popularity': np.random.randint(70, 100),
-            'danceability': round(np.random.uniform(0.3, 0.9), 2),
-            'energy': round(np.random.uniform(0.4, 0.95), 2),
-            'valence': round(np.random.uniform(0.2, 0.8), 2),
-            'acousticness': round(np.random.uniform(0.0, 0.6), 2),
-            'tempo': np.random.randint(80, 160),
-            'play_count': np.random.randint(10, 100),
-            'release_date': (datetime.now() - timedelta(days=np.random.randint(0, 365))).strftime('%Y-%m-%d')
-        })
-    
-    return pd.DataFrame(data)
-
-def create_enhanced_dashboard(selected_artists, selected_genre, min_popularity):
-    df = load_enhanced_data()
+    if analysis_type == "Genre Analysis":
+        title = "🌍 Análisis de Géneros Musicales Globales"
+    elif analysis_type == "Artist Analysis":
+        title = "🎤 Análisis de Artistas Globales"
+    else:  # Trend Analysis
+        title = "📈 Tendencias Musicales Globales"
     
     # Aplicar filtros
     df_filtered = df.copy()
     
+    if selected_genres:
+        df_filtered = df_filtered[df_filtered['genre'].isin(selected_genres)]
+    
     if selected_artists:
         df_filtered = df_filtered[df_filtered['artist'].isin(selected_artists)]
     
-    if selected_genre != "Todos":
-        df_filtered = df_filtered[df_filtered['genre'] == selected_genre]
-    
-    df_filtered = df_filtered[df_filtered['popularity'] >= min_popularity]
-    
-    # Calcular KPIs
-    avg_popularity = df_filtered['popularity'].mean()
+    # KPIs globales
     total_tracks = len(df_filtered)
-    total_plays = df_filtered['play_count'].sum()
-    avg_danceability = df_filtered['danceability'].mean()
-    avg_energy = df_filtered['energy'].mean()
+    avg_popularity = df_filtered['popularity'].mean()
+    total_streams = df_filtered['streams_millions'].sum()
+    unique_artists = df_filtered['artist'].nunique()
     
     kpis_html = f"""
+    <div style="text-align: center; margin: 20px 0;">
+        <h2>{title}</h2>
+    </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0;">
-        <div style="background: #f0f8ff; padding: 15px; border-radius: 10px; text-align: center;">
-            <h3 style="margin: 0; color: #333;">🎵 Canciones</h3>
-            <p style="font-size: 24px; font-weight: bold; color: #0066cc;">{total_tracks}</p>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px; text-align: center; color: white;">
+            <h4 style="margin: 0; font-size: 14px;">🎵 Canciones</h4>
+            <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">{total_tracks}</p>
         </div>
-        <div style="background: #fff0f5; padding: 15px; border-radius: 10px; text-align: center;">
-            <h3 style="margin: 0; color: #333;">⭐ Popularidad</h3>
-            <p style="font-size: 24px; font-weight: bold; color: #cc0066;">{avg_popularity:.0f}</p>
+        <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 15px; border-radius: 10px; text-align: center; color: white;">
+            <h4 style="margin: 0; font-size: 14px;">⭐ Popularidad</h4>
+            <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">{avg_popularity:.0f}</p>
         </div>
-        <div style="background: #f0fff0; padding: 15px; border-radius: 10px; text-align: center;">
-            <h3 style="margin: 0; color: #333;">💃 Bailabilidad</h3>
-            <p style="font-size: 24px; font-weight: bold; color: #00cc66;">{avg_danceability:.2f}</p>
+        <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 15px; border-radius: 10px; text-align: center; color: white;">
+            <h4 style="margin: 0; font-size: 14px;">📊 Streams (M)</h4>
+            <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">{total_streams:.0f}</p>
         </div>
-        <div style="background: #fff8f0; padding: 15px; border-radius: 10px; text-align: center;">
-            <h3 style="margin: 0; color: #333;">🔥 Reproducciones</h3>
-            <p style="font-size: 24px; font-weight: bold; color: #ff6600;">{total_plays}</p>
+        <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 15px; border-radius: 10px; text-align: center; color: white;">
+            <h4 style="margin: 0; font-size: 14px;">🎤 Artistas</h4>
+            <p style="font-size: 24px; font-weight: bold; margin: 5px 0;">{unique_artists}</p>
         </div>
     </div>
     """
     
-    # 1. Gráfico de torta - Distribución por artista
-    if not df_filtered.empty:
-        artist_counts = df_filtered['artist'].value_counts()
-        fig_pie = px.pie(
-            values=artist_counts.values,
-            names=artist_counts.index,
-            title="📊 Distribución por Artista"
-        )
-    else:
-        fig_pie = px.pie(title="No hay datos con los filtros seleccionados")
-    
-    # 2. Scatter plot - Popularidad vs Bailabilidad
-    fig_scatter = px.scatter(
-        df_filtered,
-        x='danceability',
-        y='popularity',
-        size='play_count',
-        color='artist',
-        hover_name='track_name',
-        title="🎯 Popularidad vs Bailabilidad",
-        size_max=20
-    )
-    
-    # 3. Gráfico de barras - Top canciones por popularidad
-    top_tracks = df_filtered.nlargest(10, 'popularity')
-    fig_bar = px.bar(
-        top_tracks,
-        x='popularity',
-        y='track_name',
-        color='artist',
-        orientation='h',
-        title="🏆 Top Canciones por Popularidad"
-    )
-    
-    # 4. Heatmap de correlación
-    numeric_cols = ['popularity', 'danceability', 'energy', 'valence', 'acousticness', 'tempo', 'play_count']
-    corr_matrix = df_filtered[numeric_cols].corr()
-    fig_heatmap = px.imshow(
-        corr_matrix,
-        title="📈 Matriz de Correlación",
-        aspect="auto",
-        color_continuous_scale="RdBu"
-    )
-    
-    # 5. Radar chart para características de audio (promedio por artista)
-    if not df_filtered.empty:
-        audio_features = ['danceability', 'energy', 'valence', 'acousticness']
-        avg_by_artist = df_filtered.groupby('artist')[audio_features].mean().reset_index()
-        
-        fig_radar = go.Figure()
-        
-        for _, row in avg_by_artist.iterrows():
-            fig_radar.add_trace(go.Scatterpolar(
-                r=[row[col] for col in audio_features] + [row[audio_features[0]]],
-                theta=audio_features + [audio_features[0]],
-                fill='toself',
-                name=row['artist']
-            ))
-        
-        fig_radar.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-            title="🎼 Características de Audio por Artista"
-        )
-    else:
-        fig_radar = go.Figure()
-        fig_radar.update_layout(title="No hay datos para el gráfico de radar")
-    
-    return (
-        kpis_html,
-        pio.to_html(fig_pie),
-        pio.to_html(fig_scatter),
-        pio.to_html(fig_bar),
-        pio.to_html(fig_heatmap),
-        pio.to_html(fig_radar),
-        df_filtered[['track_name', 'artist', 'genre', 'popularity', 'danceability', 'energy', 'play_count']].to_html(classes='table table-striped', index=False)
-    )
+    # Visualizaciones según el tipo de análisis
+    if analysis_type == "Genre Analysis":
+        return genre_analysis(df_filtered, kpis_html)
+    elif analysis_type == "Artist Analysis":
+        return artist_analysis(df_filtered, kpis_html)
+    else:  # Trend Analysis
+        return trend_analysis(df_filtered, kpis_html)
 
-# Interfaz mejorada de Gradio
-with gr.Blocks(theme=gr.themes.Soft(), title="Spotify Advanced Analysis") as demo:
+def genre_analysis(df_filtered, kpis_html):
+    """Análisis por género"""
+    # Análisis por género
+    genre_stats = df_filtered.groupby('genre').agg({
+        'popularity': 'mean',
+        'streams_millions': 'sum',
+        'danceability': 'mean',
+        'energy': 'mean'
+    }).reset_index()
+    
+    fig1 = px.bar(
+        genre_stats.sort_values('streams_millions', ascending=True),
+        y='genre',
+        x='streams_millions',
+        title='📊 Streams por Género (Millones)',
+        color='genre',
+        orientation='h'
+    )
+    
+    # Radar chart de características por género
+    features = ['danceability', 'energy', 'valence', 'acousticness']
+    fig2 = go.Figure()
+    
+    genres_to_show = genre_stats['genre'].head(4)  # Mostrar máximo 4 géneros
+    
+    for genre in genres_to_show:
+        genre_data = df_filtered[df_filtered['genre'] == genre]
+        if len(genre_data) > 0:
+            avg_features = [genre_data[feature].mean() for feature in features]
+            fig2.add_trace(go.Scatterpolar(
+                r=avg_features + [avg_features[0]],
+                theta=features + [features[0]],
+                fill='toself',
+                name=genre
+            ))
+    
+    fig2.update_layout(
+        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+        title='🎼 Características por Género',
+        height=400
+    )
+    
+    return kpis_html, pio.to_html(fig1), pio.to_html(fig2)
+
+def artist_analysis(df_filtered, kpis_html):
+    """Análisis por artista"""
+    # Análisis por artista
+    artist_stats = df_filtered.groupby('artist').agg({
+        'popularity': 'mean',
+        'streams_millions': 'sum',
+        'genre': 'first'
+    }).nlargest(12, 'streams_millions').reset_index()
+    
+    fig1 = px.bar(
+        artist_stats,
+        x='streams_millions',
+        y='artist',
+        color='genre',
+        title='🏆 Top Artistas por Streams',
+        orientation='h',
+        height=400
+    )
+    
+    # Scatter plot artistas
+    fig2 = px.scatter(
+        artist_stats,
+        x='popularity',
+        y='streams_millions',
+        size='streams_millions',
+        color='genre',
+        hover_name='artist',
+        title='📈 Popularidad vs Streams por Artista',
+        size_max=30,
+        height=400
+    )
+    
+    return kpis_html, pio.to_html(fig1), pio.to_html(fig2)
+
+def trend_analysis(df_filtered, kpis_html):
+    """Análisis de tendencias"""
+    # Análisis de tendencias
+    weekly_trends = df_filtered.groupby('week').agg({
+        'popularity': 'mean',
+        'streams_millions': 'sum'
+    }).reset_index()
+    
+    fig1 = px.line(
+        weekly_trends,
+        x='week',
+        y='streams_millions',
+        title='📈 Evolución Semanal de Streams',
+        markers=True,
+        height=400
+    )
+    
+    # Distribución de características
+    fig2 = px.box(
+        df_filtered,
+        x='genre',
+        y='danceability',
+        color='genre',
+        title='💃 Distribución de Bailabilidad por Género',
+        height=400
+    )
+    
+    return kpis_html, pio.to_html(fig1), pio.to_html(fig2)
+
+def update_artist_options(selected_genres):
+    """Actualizar lista de artistas basado en géneros seleccionados"""
+    df = music_analyzer.get_global_charts_data()
+    
+    if selected_genres:
+        df_filtered = df[df['genre'].isin(selected_genres)]
+        artists = sorted(df_filtered['artist'].unique().tolist())
+    else:
+        artists = sorted(df['artist'].unique().tolist())
+    
+    return gr.Dropdown(choices=artists, value=[])
+
+# Interfaz de Gradio SIMPLIFICADA
+with gr.Blocks() as demo:
     gr.Markdown("""
-    # 🎵 Spotify Advanced Data Analysis Dashboard
-    *Análisis completo de tus hábitos de escucha musical*
+    # 🌍 Global Music Trends Analyzer
+    **Análisis de tendencias musicales globales y comparativa entre géneros**
+    
+    *Datos simulados realistas de la industria musical global*
     """)
     
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Markdown("### 🎛️ Panel de Control")
-            artist_selector = gr.Dropdown(
-                label="Seleccionar Artistas",
-                choices=['The Weeknd', 'Dua Lipa', 'Bad Bunny', 'Taylor Swift', 'Ed Sheeran', 
-                        'Billie Eilish', 'The Beatles', 'Rosalía', 'J Balvin', 'Olivia Rodrigo'],
-                multiselect=True
+            gr.Markdown("### 🎛️ Configuración del Análisis")
+            analysis_type = gr.Radio(
+                choices=["Genre Analysis", "Artist Analysis", "Trend Analysis"],
+                value="Genre Analysis",
+                label="Tipo de Análisis"
             )
             
+            gr.Markdown("### 🔍 Filtros")
             genre_selector = gr.Dropdown(
                 label="Filtrar por Género",
-                choices=["Todos", "Pop", "Pop/R&B", "Pop/Dance", "Reggaeton", "Pop/Folk", 
-                        "Alternative", "Rock", "Flamenco/Pop", "Pop/Rock"],
-                value="Todos"
+                choices=music_analyzer.genres,
+                multiselect=True,
+                value=["Pop", "Hip-Hop", "Rock"]
             )
             
-            popularity_slider = gr.Slider(
-                minimum=0,
-                maximum=100,
-                value=70,
-                label="Popularidad Mínima"
+            artist_selector = gr.Dropdown(
+                label="Filtrar por Artista",
+                multiselect=True,
+                value=[],
+                interactive=True
             )
             
-            update_btn = gr.Button("🔄 Actualizar Dashboard", variant="primary")
+            update_btn = gr.Button("🔄 Generar Análisis", variant="primary")
+            
+            gr.Markdown("""
+            ### 💡 Tipos de Análisis
+            - **Genre Analysis**: Comparativa entre géneros musicales
+            - **Artist Analysis**: Ranking y análisis de artistas  
+            - **Trend Analysis**: Evolución temporal y tendencias
+            """)
         
         with gr.Column(scale=3):
-            kpis_display = gr.HTML(label="Métricas Principales")
-            
+            kpis_display = gr.HTML()
             with gr.Row():
-                pie_display = gr.HTML(label="Distribución Artistas")
-                scatter_display = gr.HTML(label="Popularidad vs Bailabilidad")
-            
+                chart1_display = gr.HTML()
             with gr.Row():
-                bar_display = gr.HTML(label="Top Canciones")
-                heatmap_display = gr.HTML(label="Matriz Correlación")
-            
-            with gr.Row():
-                radar_display = gr.HTML(label="Análisis Audio")
-            
-            with gr.Row():
-                table_display = gr.HTML(label="Datos Detallados")
+                chart2_display = gr.HTML()
     
-    # Conectar el botón
+    # Conectar eventos
     update_btn.click(
-        fn=create_enhanced_dashboard,
-        inputs=[artist_selector, genre_selector, popularity_slider],
-        outputs=[kpis_display, pie_display, scatter_display, bar_display, heatmap_display, radar_display, table_display]
+        fn=create_global_music_dashboard,
+        inputs=[analysis_type, genre_selector, artist_selector],
+        outputs=[kpis_display, chart1_display, chart2_display]
+    )
+    
+    # Actualizar artistas cuando cambien los géneros
+    genre_selector.change(
+        fn=update_artist_options,
+        inputs=genre_selector,
+        outputs=artist_selector
     )
 
 if __name__ == "__main__":
-    demo.launch(share=True)  # share=True te da un link público
+    print("🚀 Iniciando Global Music Analysis...")
+    demo.launch(
+        server_name="127.0.0.1", 
+        server_port=7860, 
+        share=True
+    )
